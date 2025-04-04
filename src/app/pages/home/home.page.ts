@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, computed, OnInit, signal, effect, Injector, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, Validators, ReactiveFormsModule } from '@angular/forms';
 import { IonItem, IonList, IonLabel, IonButton, IonIcon, IonGrid, IonRow, IonCol, IonInput, IonText, IonCheckbox, IonCardHeader, IonCardContent, IonCard, IonCardSubtitle, IonCardTitle, IonSelect, IonSelectOption } from '@ionic/angular/standalone';
@@ -19,14 +19,10 @@ export class HomePage implements OnInit {
   todayDate = signal(new Date().toLocaleDateString());
 
   /** Lista de tareas */
-  tasks = signal<Task[]>([
-    { id: Date.now(), name: 'Tarea 1', completed: false, editing: false }
-  ]);
+  tasks = signal<Task[]>([]);
 
   /** Lista de categorías */
-  categories = signal<Category[]>([
-    { id: Date.now(), name: 'Categoria 1', editing: false }
-  ]);
+  categories = signal<Category[]>([]);
 
   /** Controlador para alternar entre categorías y tareas */
   categoriesToogle: boolean = false;
@@ -41,12 +37,61 @@ export class HomePage implements OnInit {
     ]
   });
 
+    /** Valor filtro de tareas por categoria */
+  filter = signal<'all' | number>('all');
+
+  /** Filtro de tareas por categoria */
+  filterTaskByCategory = computed(() => {
+    const filter = this.filter();
+    const tasks = this.tasks();
+    return tasks.filter(task => {
+      if (filter === 'all') {
+        return true; // Mostrar todas las tareas
+      } else {
+        return task.categoryId === filter; // Filtrar por categoría
+      }
+    }
+    );
+  });
+
+  injector = inject(Injector);
+
   constructor() {
     // Agregar los íconos necesarios para la aplicación
     addIcons({addCircleOutline, refreshOutline, trashOutline, checkmarkCircleOutline});
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // inicializar las tareas y categorías desde el localStorage
+    const storedTasks = localStorage.getItem('tasks');
+    const storedCategories = localStorage.getItem('categories');
+    if (storedTasks) {
+      this.tasks.set(JSON.parse(storedTasks));
+    }
+    if (storedCategories) {
+      this.categories.set(JSON.parse(storedCategories));
+    }
+    this.trackTask(); // Rastrear cambios en las tareas
+    this.trackCategory(); // Rastrear cambios en las categorías
+  }
+
+  /** Rastrear tareas */
+  trackTask() {
+       // Usar effect para rastrear cambios en la lista de tareas y enviar a localStorage
+       effect(() => {
+        const tasks = this.tasks();
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+      }, {injector: this.injector});
+  }
+
+  /** Rastrear categorias */
+  trackCategory() {
+    // Usar effect para rastrear cambios en la lista de categorias y enviar a localStorage
+    effect(() => {
+      const categories = this.categories();
+      localStorage.setItem('categories', JSON.stringify(categories));
+    }, {injector: this.injector});
+  }
 
   /** Agrega un nuevo item (tarea o categoría) si la validación es correcta. */
   addItem() {
@@ -205,5 +250,10 @@ export class HomePage implements OnInit {
       task.editing = false; // Desactivar el modo edición
       this.tasks.update(tasks => [...tasks]); // Actualizar la lista de tareas
     }
+  }
+
+  /** Cambio de filtro por categoria */
+  changeCategoryFilter(filter: 'all' | number) {
+    this.filter.set(filter);
   }
 }

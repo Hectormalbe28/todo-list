@@ -28,7 +28,7 @@
           </ion-item>
 
           <!-- Mensaje de validación para la entrada -->
-          <ion-text color="danger" *ngIf="newItemCtrl.invalid || newItemCtrl.touched">
+          <ion-text color="danger" *ngIf="newItemCtrl.invalid && newItemCtrl.dirty">
             <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['required']">La tarea no puede estar vacía.</p>
             <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['minlength']">Debe tener al menos 3 caracteres.</p>
             <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['maxlength']">No puede superar los 30 caracteres.</p>
@@ -48,9 +48,21 @@
         </ion-card-content>
       </ion-card>
 
+      <!-- Filtro por categorias -->
+       <ion-row class="ion-justify-content-center" *ngIf="!categoriesToogle && categories().length > 0">
+        <ion-col size="12">
+          <ion-button (click)="changeCategoryFilter('all')" [fill]="filter() == 'all' ? 'solid' : 'outline'" color="primary" size="small">
+            <small>Todas</small>
+          </ion-button>
+          <ion-button *ngFor="let category of categories()" (click)="changeCategoryFilter(category.id)" [fill]="filter() == category.id ? 'solid' : 'outline'" color="primary"size="small">
+            <small>{{category.name}}</small>
+          </ion-button>
+        </ion-col>
+       </ion-row>
+
       <!-- Lista de tareas (cuando no se visualizan categorías) -->
       <ion-list class="full-width" *ngIf="!categoriesToogle">
-        <ion-item *ngFor="let task of tasks()" class="task-item full-width">
+        <ion-item *ngFor="let task of filterTaskByCategory()" class="task-item full-width">
           <!-- Checkbox para marcar tarea como completada -->
           <ion-checkbox
             slot="start"
@@ -110,6 +122,15 @@
           <ion-button *ngIf="!category.editing" fill="clear" color="primary" (click)="deleteItem(category.id)">
             <ion-icon name="trash-outline"></ion-icon>
           </ion-button>
+        </ion-item>
+      </ion-list>
+
+      <!-- Estado zero para la lista -->
+      <ion-list class="full-width" *ngIf="categories().length == 0 && categoriesToogle || tasks().length == 0 && !categoriesToogle">
+        <ion-item class="task-item full-width">
+          <ion-label color="primary" class="ion-text-center ion-text-center">
+            Agregar una nueva {{ categoriesToogle ? 'categoría' : 'tarea' }} para comenzar
+          </ion-label>
         </ion-item>
       </ion-list>
 
