@@ -43,21 +43,23 @@
           }
 
           <!-- Botón para alternar entre categorías y tareas -->
-          <ion-row class="ion-justify-content-end">
-            <ion-col size="auto">
-              <ion-text color="primary">
-                <ion-button (click)="toggleCategories()" fill="clear" color="primary">
-                  <small>Cambiar a {{ !categoriesToogle ? 'categorías' : 'tareas'}}</small>
-                  <ion-icon class="ion-padding-start" name="refresh-outline" size="small"></ion-icon>
-                </ion-button>
-              </ion-text>
-            </ion-col>
-          </ion-row>
+           @if (CategoriesFeatureFlag) {
+            <ion-row class="ion-justify-content-end">
+              <ion-col size="auto">
+                <ion-text color="primary">
+                  <ion-button (click)="toggleCategories()" fill="clear" color="primary">
+                    <small>Cambiar a {{ !categoriesToogle ? 'categorías' : 'tareas'}}</small>
+                    <ion-icon class="ion-padding-start" name="refresh-outline" size="small"></ion-icon>
+                  </ion-button>
+                </ion-text>
+              </ion-col>
+            </ion-row>
+           }
         </ion-card-content>
       </ion-card>
 
       <!-- Filtro por categorias -->
-      @if (!categoriesToogle && categories().length > 0) {
+      @if (!categoriesToogle && categories().length > 0 && CategoriesFeatureFlag) {
         <ion-row class="ion-justify-content-center">
           <ion-col size="12">
             <ion-button (click)="changeCategoryFilter('all')" [fill]="filter() == 'all' ? 'solid' : 'outline'" color="primary" size="small">
@@ -75,7 +77,7 @@
       <!-- Lista de tareas (cuando no se visualizan categorías) -->
       @if (!categoriesToogle) {
         <ion-list class="full-width">
-          @for (task of filterTaskByCategory(); track task) {
+          @for (task of paginatedTasks; track trackByTaskId) {
             <ion-item class="task-item full-width">
               <!-- Checkbox para marcar tarea como completada -->
               @if (!task.editing) {
@@ -88,7 +90,7 @@
               <!-- Vista de tarea cuando no está en modo edición -->
               @if (!task.editing) {
                 <ion-label (dblclick)="activateEditMode(task.id)" [class.completed]="task.completed">
-                  <strong class="ion-padding-end">{{ task.category ? task.category.name + ':' : '' }}</strong>
+                  <strong class="ion-padding-end">{{ task.category && CategoriesFeatureFlag ? task.category.name + ':' : '' }}</strong>
                   <small>{{ task.name }}</small>
                 </ion-label>
               }
@@ -101,7 +103,7 @@
                 </ion-input>
               }
               <!-- Selector de categorías (solo visible cuando la tarea está en edición) -->
-              @if (task.editing && !categoriesToogle && categories().length > 0) {
+              @if (task.editing && !categoriesToogle && categories().length > 0 && CategoriesFeatureFlag) {
                 <ion-list class="ion-no-padding">
                   <ion-item class="selector">
                     <ion-select placeholder="Seleccionar categoría"
@@ -122,10 +124,40 @@
             </ion-item>
           }
         </ion-list>
+        <!-- Paginador lista de tareas -->
+         @if (filterTaskByCategory().length > 5) {
+          <ion-row class="ion-justify-content-between ion-align-items-center ion-padding">
+            <ion-col size="auto">
+              <ion-button
+                (click)="prevPage()"
+                [disabled]="currentPage() === 1"
+                fill="outline"
+                size="small">
+                Anterior
+              </ion-button>
+            </ion-col>
+
+            <ion-col size="auto">
+              <ion-text>
+                Página {{ currentPage() }}
+              </ion-text>
+            </ion-col>
+
+            <ion-col size="auto">
+              <ion-button
+                (click)="nextPage()"
+                [disabled]="currentPage() * pageSize >= filterTaskByCategory().length"
+                fill="outline"
+                size="small">
+                Siguiente
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        }
       }
 
       <!-- Lista de categorías (cuando se visualizan categorías) -->
-      @if (categoriesToogle) {
+      @if (categoriesToogle && CategoriesFeatureFlag) {
         <ion-list>
           @for (category of categories(); track category) {
             <ion-item class="task-item full-width">

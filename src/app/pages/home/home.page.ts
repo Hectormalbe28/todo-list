@@ -5,6 +5,7 @@ import { IonItem, IonList, IonLabel, IonButton, IonIcon, IonGrid, IonRow, IonCol
 import { Task, Category } from "../../models/task.model";
 import { addIcons } from 'ionicons';
 import { trashOutline, addCircleOutline, checkmarkCircleOutline, refreshOutline } from 'ionicons/icons';
+import { ensureInitialized, fetchAndActivate, getValue, RemoteConfig } from '@angular/fire/remote-config';
 
 @Component({
   selector: 'app-home',
@@ -14,6 +15,9 @@ import { trashOutline, addCircleOutline, checkmarkCircleOutline, refreshOutline 
   imports: [IonCardTitle, IonCardSubtitle, IonCard, IonCardContent, IonCardHeader, IonCheckbox, IonText, IonInput, IonCol, IonRow, IonGrid, IonIcon, IonButton, IonLabel, IonList, IonItem, FormsModule, ReactiveFormsModule, IonSelect, IonSelectOption],
 })
 export class HomePage implements OnInit {
+
+  /** Instancia de RemoteConfig inyectada mediante Angular */
+  private remoteConfig = inject(RemoteConfig);
 
   /** Fecha actual en formato local */
   todayDate = signal(new Date().toLocaleDateString());
@@ -54,6 +58,9 @@ export class HomePage implements OnInit {
     );
   });
 
+  /** Feature flag para desactivar funcionalidad de categoria */
+  CategoriesFeatureFlag: boolean = false;
+
   injector = inject(Injector);
 
   constructor() {
@@ -62,6 +69,7 @@ export class HomePage implements OnInit {
   }
 
   ngOnInit(): void {
+    this.initializeRemoteConfig();
     // inicializar las tareas y categorías desde el localStorage
     const storedTasks = localStorage.getItem('tasks');
     const storedCategories = localStorage.getItem('categories');
@@ -73,6 +81,43 @@ export class HomePage implements OnInit {
     }
     this.trackTask(); // Rastrear cambios en las tareas
     this.trackCategory(); // Rastrear cambios en las categorías
+  }
+
+    /**
+   * Método ejecutado al inicializar el servicio.
+   * Intenta obtener la configuración remota y actualizar el estado de la función.
+   * Si ocurre un error, se captura y se notifica en la consola.
+   */
+  private async initializeRemoteConfig() {
+    try {
+      // Asegura que Remote Config está inicializado antes de su uso
+      await ensureInitialized(this.remoteConfig);
+
+      // Configura el intervalo mínimo de actualización en 0ms para forzar la carga más reciente
+      this.remoteConfig.settings.minimumFetchIntervalMillis = 0;
+
+      // Descarga y activa la configuración remota más reciente
+      await fetchAndActivate(this.remoteConfig);
+
+      // Actualiza el estado del feature flag basado en la configuración obtenida
+      this.updateFeatureFlag();
+    } catch (error) {
+      console.error("Error obteniendo Remote Config:", error);
+    }
+  }
+
+  /**
+   * Obtiene el valor del feature flag desde la configuración remota y actualiza el estado de la función.
+   * Si el flag tiene el valor "true", la función se marca como activa, en caso contrario, como desactivada.
+   */
+  updateFeatureFlag() {
+    // Obtiene el valor del flag remoto "featureEnabled" y lo convierte a string
+    const featureFlag = getValue(this.remoteConfig, 'featureEnabled').asString();
+
+    // Actualiza el estado de la función basado en el valor del flag
+    this.CategoriesFeatureFlag = featureFlag === 'true';
+    // Imprime el estado actual de la función en la consola para depuración
+    console.log(this.CategoriesFeatureFlag ? '✅ Función Activa' : '❌ Función Desactivada');
   }
 
   /** Rastrear tareas */
@@ -115,6 +160,7 @@ export class HomePage implements OnInit {
             editing: false
           };
           this.tasks.update(tasks => [...tasks, newTask]);
+          this.currentPage.set(1);
         }
         this.newItemCtrl.setValue(''); // Limpia el campo de entrada
       }
@@ -133,6 +179,7 @@ export class HomePage implements OnInit {
     } else {
       // Eliminar tarea
       this.tasks.update(tasks => tasks.filter(task => task.id !== id));
+      this.currentPage.set(1);
     }
   }
 
@@ -255,5 +302,46 @@ export class HomePage implements OnInit {
   /** Cambio de filtro por categoria */
   changeCategoryFilter(filter: 'all' | number) {
     this.filter.set(filter);
+  }
+
+  /**Paginador para tareas */
+  trackByTaskId(index: number, task: Task): number {
+    return task.id;
+  }
+  // Número de tareas por página
+  pageSize = 5;
+
+  // Página actual
+  currentPage = signal(1);
+
+  get paginatedTasks(): Task[] {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    return this.filterTaskByCategory().slice(start, start + this.pageSize);
+  }
+
+  // Cálculo de tareas visibles
+  visibleTasks = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    return this.tasks().slice(start, end);
+  });
+
+  // Total de páginas
+  totalPages = computed(() => {
+    return Math.ceil(this.tasks().length / this.pageSize);
+  });
+
+  /** Cambia a la siguiente página de tareas */
+  nextPage() {
+    if (this.currentPage() * this.pageSize < this.filterTaskByCategory().length) {
+      this.currentPage.update(current => current + 1);
+    }
+  }
+
+  /** Cambia a la página anterior de tareas */
+  prevPage() {
+    if (this.currentPage() > 1) {
+      this.currentPage.update(current => current - 1);
+    }
   }
 }
