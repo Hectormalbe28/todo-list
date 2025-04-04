@@ -1,5 +1,5 @@
 import { Component, computed, OnInit, signal, effect, Injector, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormControl, FormsModule, Validators, ReactiveFormsModule } from '@angular/forms';
 import { IonItem, IonList, IonLabel, IonButton, IonIcon, IonGrid, IonRow, IonCol, IonInput, IonText, IonCheckbox, IonCardHeader, IonCardContent, IonCard, IonCardSubtitle, IonCardTitle, IonSelect, IonSelectOption } from '@ionic/angular/standalone';
 import { Task, Category } from "../../models/task.model";
@@ -11,7 +11,7 @@ import { trashOutline, addCircleOutline, checkmarkCircleOutline, refreshOutline 
   templateUrl: './home.page.html',
   styleUrls: ['./home.page.scss'],
   standalone: true,
-  imports: [IonCardTitle, IonCardSubtitle, IonCard, IonCardContent, IonCardHeader, IonCheckbox, IonText, IonInput, IonCol, IonRow, IonGrid, IonIcon, IonButton, IonLabel, IonList, IonItem, CommonModule, FormsModule, ReactiveFormsModule, IonSelect, IonSelectOption ],
+  imports: [IonCardTitle, IonCardSubtitle, IonCard, IonCardContent, IonCardHeader, IonCheckbox, IonText, IonInput, IonCol, IonRow, IonGrid, IonIcon, IonButton, IonLabel, IonList, IonItem, FormsModule, ReactiveFormsModule, IonSelect, IonSelectOption],
 })
 export class HomePage implements OnInit {
 

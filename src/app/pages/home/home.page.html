@@ -28,11 +28,19 @@
           </ion-item>
 
           <!-- Mensaje de validación para la entrada -->
-          <ion-text color="danger" *ngIf="newItemCtrl.invalid && newItemCtrl.dirty">
-            <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['required']">La tarea no puede estar vacía.</p>
-            <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['minlength']">Debe tener al menos 3 caracteres.</p>
-            <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['maxlength']">No puede superar los 30 caracteres.</p>
-          </ion-text>
+          @if (newItemCtrl.invalid && newItemCtrl.dirty) {
+            <ion-text color="danger">
+              @if (newItemCtrl.errors?.['required']) {
+                <p class="ion-padding-start">La tarea no puede estar vacía.</p>
+              }
+              @if (newItemCtrl.errors?.['minlength']) {
+                <p class="ion-padding-start">Debe tener al menos 3 caracteres.</p>
+              }
+              @if (newItemCtrl.errors?.['maxlength']) {
+                <p class="ion-padding-start">No puede superar los 30 caracteres.</p>
+              }
+            </ion-text>
+          }
 
           <!-- Botón para alternar entre categorías y tareas -->
           <ion-row class="ion-justify-content-end">
@@ -49,90 +57,113 @@
       </ion-card>
 
       <!-- Filtro por categorias -->
-       <ion-row class="ion-justify-content-center" *ngIf="!categoriesToogle && categories().length > 0">
-        <ion-col size="12">
-          <ion-button (click)="changeCategoryFilter('all')" [fill]="filter() == 'all' ? 'solid' : 'outline'" color="primary" size="small">
-            <small>Todas</small>
-          </ion-button>
-          <ion-button *ngFor="let category of categories()" (click)="changeCategoryFilter(category.id)" [fill]="filter() == category.id ? 'solid' : 'outline'" color="primary"size="small">
-            <small>{{category.name}}</small>
-          </ion-button>
-        </ion-col>
-       </ion-row>
+      @if (!categoriesToogle && categories().length > 0) {
+        <ion-row class="ion-justify-content-center">
+          <ion-col size="12">
+            <ion-button (click)="changeCategoryFilter('all')" [fill]="filter() == 'all' ? 'solid' : 'outline'" color="primary" size="small">
+              <small>Todas</small>
+            </ion-button>
+            @for (category of categories(); track category) {
+              <ion-button (click)="changeCategoryFilter(category.id)" [fill]="filter() == category.id ? 'solid' : 'outline'" color="primary"size="small">
+                <small>{{category.name}}</small>
+              </ion-button>
+            }
+          </ion-col>
+        </ion-row>
+      }
 
       <!-- Lista de tareas (cuando no se visualizan categorías) -->
-      <ion-list class="full-width" *ngIf="!categoriesToogle">
-        <ion-item *ngFor="let task of filterTaskByCategory()" class="task-item full-width">
-          <!-- Checkbox para marcar tarea como completada -->
-          <ion-checkbox
-            slot="start"
-            *ngIf="!task.editing"
-            [checked]="task.completed"
-            (ionChange)="toggleTaskCompletion(task.id)">
-          </ion-checkbox>
-
-          <!-- Vista de tarea cuando no está en modo edición -->
-          <ion-label *ngIf="!task.editing" (dblclick)="activateEditMode(task.id)" [class.completed]="task.completed">
-            <strong class="ion-padding-end">{{ task.category ? task.category.name + ':' : '' }}</strong>
-            <small>{{ task.name }}</small>
-          </ion-label>
-
-          <!-- Modo edición: campo de entrada para modificar la tarea -->
-          <ion-input
-            *ngIf="task.editing"
-            [value]="task.name"
-            (keydown.enter)="editItem(task.id, $event)"
-            class="edit-input">
-          </ion-input>
-
-          <!-- Selector de categorías (solo visible cuando la tarea está en edición) -->
-          <ion-list *ngIf="task.editing && !categoriesToogle && categories().length > 0" class="ion-no-padding">
-            <ion-item class="selector">
-              <ion-select placeholder="Seleccionar categoría"
-              (ionChange)="assignCategoryToTask(task, $event)">
-                <ion-select-option *ngFor="let category of categories()" [value]="category.id">{{ category.name }}</ion-select-option>
-              </ion-select>
+      @if (!categoriesToogle) {
+        <ion-list class="full-width">
+          @for (task of filterTaskByCategory(); track task) {
+            <ion-item class="task-item full-width">
+              <!-- Checkbox para marcar tarea como completada -->
+              @if (!task.editing) {
+                <ion-checkbox
+                  slot="start"
+                  [checked]="task.completed"
+                  (ionChange)="toggleTaskCompletion(task.id)">
+                </ion-checkbox>
+              }
+              <!-- Vista de tarea cuando no está en modo edición -->
+              @if (!task.editing) {
+                <ion-label (dblclick)="activateEditMode(task.id)" [class.completed]="task.completed">
+                  <strong class="ion-padding-end">{{ task.category ? task.category.name + ':' : '' }}</strong>
+                  <small>{{ task.name }}</small>
+                </ion-label>
+              }
+              <!-- Modo edición: campo de entrada para modificar la tarea -->
+              @if (task.editing) {
+                <ion-input
+                  [value]="task.name"
+                  (keydown.enter)="editItem(task.id, $event)"
+                  class="edit-input">
+                </ion-input>
+              }
+              <!-- Selector de categorías (solo visible cuando la tarea está en edición) -->
+              @if (task.editing && !categoriesToogle && categories().length > 0) {
+                <ion-list class="ion-no-padding">
+                  <ion-item class="selector">
+                    <ion-select placeholder="Seleccionar categoría"
+                      (ionChange)="assignCategoryToTask(task, $event)">
+                      @for (category of categories(); track category) {
+                        <ion-select-option [value]="category.id">{{ category.name }}</ion-select-option>
+                      }
+                    </ion-select>
+                  </ion-item>
+                </ion-list>
+              }
+              <!-- Botón para eliminar la tarea -->
+              @if (!task.editing) {
+                <ion-button fill="clear" color="primary" (click)="deleteItem(task.id)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </ion-button>
+              }
             </ion-item>
-          </ion-list>
-
-          <!-- Botón para eliminar la tarea -->
-          <ion-button *ngIf="!task.editing" fill="clear" color="primary" (click)="deleteItem(task.id)">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-item>
-      </ion-list>
+          }
+        </ion-list>
+      }
 
       <!-- Lista de categorías (cuando se visualizan categorías) -->
-      <ion-list *ngIf="categoriesToogle">
-        <ion-item *ngFor="let category of categories()" class="task-item full-width">
-          <!-- Vista de categoría cuando no está en modo edición -->
-          <ion-label *ngIf="!category.editing" (dblclick)="activateEditMode(category.id)">
-            {{ category.name }}
-          </ion-label>
-
-          <!-- Modo edición: campo de entrada para modificar la categoría -->
-          <ion-input
-            *ngIf="category.editing"
-            [value]="category.name"
-            (keydown.enter)="editItem(category.id, $event)"
-            class="edit-input">
-          </ion-input>
-
-          <!-- Botón para eliminar la categoría -->
-          <ion-button *ngIf="!category.editing" fill="clear" color="primary" (click)="deleteItem(category.id)">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-item>
-      </ion-list>
+      @if (categoriesToogle) {
+        <ion-list>
+          @for (category of categories(); track category) {
+            <ion-item class="task-item full-width">
+              <!-- Vista de categoría cuando no está en modo edición -->
+              @if (!category.editing) {
+                <ion-label (dblclick)="activateEditMode(category.id)">
+                  {{ category.name }}
+                </ion-label>
+              }
+              <!-- Modo edición: campo de entrada para modificar la categoría -->
+              @if (category.editing) {
+                <ion-input
+                  [value]="category.name"
+                  (keydown.enter)="editItem(category.id, $event)"
+                  class="edit-input">
+                </ion-input>
+              }
+              <!-- Botón para eliminar la categoría -->
+              @if (!category.editing) {
+                <ion-button fill="clear" color="primary" (click)="deleteItem(category.id)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </ion-button>
+              }
+            </ion-item>
+          }
+        </ion-list>
+      }
 
       <!-- Estado zero para la lista -->
-      <ion-list class="full-width" *ngIf="categories().length == 0 && categoriesToogle || tasks().length == 0 && !categoriesToogle">
-        <ion-item class="task-item full-width">
-          <ion-label color="primary" class="ion-text-center ion-text-center">
-            Agregar una nueva {{ categoriesToogle ? 'categoría' : 'tarea' }} para comenzar
-          </ion-label>
-        </ion-item>
-      </ion-list>
+      @if (categories().length == 0 && categoriesToogle || tasks().length == 0 && !categoriesToogle) {
+        <ion-list class="full-width">
+          <ion-item class="task-item full-width">
+            <ion-label color="primary" class="ion-text-center ion-text-center">
+              Agregar una nueva {{ categoriesToogle ? 'categoría' : 'tarea' }} para comenzar
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      }
 
     </ion-col>
   </ion-row>
