@@ -1,0 +1,33 @@
+/* Contenedor que asegura que la lista de tareas ocupe todo el ancho */
+.full-width {
+  width: 100%;
+}
+
+/* Asegura que cada tarea ocupe el ancho completo y tenga espacio uniforme */
+.task-item {
+  width: 100%;
+  --inner-padding-start: 0;
+  --background: var(--ion-color-light);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* Estilo para las tareas completadas */
+.completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+  pointer-events: none
+}
+
+/* Asegura que el input de edición se vea correctamente */
+.edit-input {
+  width: 100%;
+  padding: 8px;
+}
+
+/* Mejora la visualización en pantallas pequeñas */
+@media (max-width: 768px) {
+  .task-item {
+    font-size: 14px;
+  }
+}

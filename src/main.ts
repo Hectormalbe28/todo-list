@@ -20,6 +20,7 @@ bootstrapApplication(AppComponent, {
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     // Agregar soporte para Remote Config
     provideRemoteConfig(() => getRemoteConfig()),
+
   ],
 }).catch(err => console.error(err));
 
