@@ -1,42 +1,55 @@
-<!-- Contenedor principal para mejor responsive -->
+<!-- Contenedor principal con diseño responsivo -->
 <ion-grid fixed>
   <ion-row class="ion-justify-content-center">
     <ion-col size="12" size-sm="12" size-md="8" size-lg="6">
 
-      <!-- Título de la agenda -->
-      <ion-card class="ion-padding">
+      <!-- Título y subtítulo de la agenda -->
+      <ion-card class="ion-no-padding">
         <ion-card-header>
           <ion-card-title class="ion-text-center">
             <strong>Agenda</strong>
           </ion-card-title>
           <ion-card-subtitle class="ion-text-center">
-            Tareas para el {{ todayDate() }}
+            Lista de {{ categoriesToogle ? 'Categorías' : 'Tareas para el ' + todayDate() }}
           </ion-card-subtitle>
         </ion-card-header>
 
-        <ion-card-content>
-          <!-- Campo de entrada para agregar nueva tarea -->
+        <ion-card-content class="ion-no-padding ion-padding-start ion-padding-end">
+          <!-- Campo de entrada para agregar nueva tarea o categoría -->
           <ion-item>
             <ion-input
-              placeholder="Crea una nueva tarea"
-              [formControl]="newTaskCtrl"
-              (keydown.enter)="addTask()">
+              [placeholder]=" categoriesToogle ? 'Crea una nueva categoría' : 'Crea una nueva tarea' "
+              [formControl]="newItemCtrl"
+              (keydown.enter)="addItem()">
             </ion-input>
-            <ion-button (click)="addTask()" fill="solid" color="primary">
+            <ion-button (click)="addItem()" fill="solid" color="primary">
               <ion-icon name="add-circle-outline"></ion-icon>
             </ion-button>
           </ion-item>
-          <!-- Mensaje de validación -->
-          <ion-text color="danger" *ngIf="newTaskCtrl.invalid && newTaskCtrl.touched">
-            <p *ngIf="newTaskCtrl.errors?.['required']">La tarea no puede estar vacía.</p>
-            <p *ngIf="newTaskCtrl.errors?.['minlength']">Debe tener al menos 3 caracteres.</p>
-            <p *ngIf="newTaskCtrl.errors?.['maxlength']">No puede superar los 30 caracteres.</p>
+
+          <!-- Mensaje de validación para la entrada -->
+          <ion-text color="danger" *ngIf="newItemCtrl.invalid || newItemCtrl.touched">
+            <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['required']">La tarea no puede estar vacía.</p>
+            <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['minlength']">Debe tener al menos 3 caracteres.</p>
+            <p class="ion-padding-start" *ngIf="newItemCtrl.errors?.['maxlength']">No puede superar los 30 caracteres.</p>
           </ion-text>
+
+          <!-- Botón para alternar entre categorías y tareas -->
+          <ion-row class="ion-justify-content-end">
+            <ion-col size="auto">
+              <ion-text color="primary">
+                <ion-button (click)="toggleCategories()" fill="clear" color="primary">
+                  <small>Cambiar a {{ !categoriesToogle ? 'categorías' : 'tareas'}}</small>
+                  <ion-icon class="ion-padding-start" name="refresh-outline" size="small"></ion-icon>
+                </ion-button>
+              </ion-text>
+            </ion-col>
+          </ion-row>
         </ion-card-content>
       </ion-card>
 
-      <!-- Lista de tareas -->
-      <ion-list class="full-width">
+      <!-- Lista de tareas (cuando no se visualizan categorías) -->
+      <ion-list class="full-width" *ngIf="!categoriesToogle">
         <ion-item *ngFor="let task of tasks()" class="task-item full-width">
           <!-- Checkbox para marcar tarea como completada -->
           <ion-checkbox
@@ -48,19 +61,53 @@
 
           <!-- Vista de tarea cuando no está en modo edición -->
           <ion-label *ngIf="!task.editing" (dblclick)="activateEditMode(task.id)" [class.completed]="task.completed">
-            {{ task.name }}
+            <strong class="ion-padding-end">{{ task.category ? task.category.name + ':' : '' }}</strong>
+            <small>{{ task.name }}</small>
           </ion-label>
 
           <!-- Modo edición: campo de entrada para modificar la tarea -->
           <ion-input
             *ngIf="task.editing"
             [value]="task.name"
-            (keydown.enter)="editTask(task.id, $event)"
+            (keydown.enter)="editItem(task.id, $event)"
             class="edit-input">
           </ion-input>
 
+          <!-- Selector de categorías (solo visible cuando la tarea está en edición) -->
+          <ion-list *ngIf="task.editing && !categoriesToogle && categories().length > 0" class="ion-no-padding">
+            <ion-item class="selector">
+              <ion-select placeholder="Seleccionar categoría"
+              (ionChange)="assignCategoryToTask(task, $event)">
+                <ion-select-option *ngFor="let category of categories()" [value]="category.id">{{ category.name }}</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-list>
+
           <!-- Botón para eliminar la tarea -->
-          <ion-button *ngIf="!task.editing" fill="clear" color="primary" (click)="deleteTask(task.id)">
+          <ion-button *ngIf="!task.editing" fill="clear" color="primary" (click)="deleteItem(task.id)">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-item>
+      </ion-list>
+
+      <!-- Lista de categorías (cuando se visualizan categorías) -->
+      <ion-list *ngIf="categoriesToogle">
+        <ion-item *ngFor="let category of categories()" class="task-item full-width">
+          <!-- Vista de categoría cuando no está en modo edición -->
+          <ion-label *ngIf="!category.editing" (dblclick)="activateEditMode(category.id)">
+            {{ category.name }}
+          </ion-label>
+
+          <!-- Modo edición: campo de entrada para modificar la categoría -->
+          <ion-input
+            *ngIf="category.editing"
+            [value]="category.name"
+            (keydown.enter)="editItem(category.id, $event)"
+            class="edit-input">
+          </ion-input>
+
+          <!-- Botón para eliminar la categoría -->
+          <ion-button *ngIf="!category.editing" fill="clear" color="primary" (click)="deleteItem(category.id)">
             <ion-icon name="trash-outline"></ion-icon>
           </ion-button>
         </ion-item>

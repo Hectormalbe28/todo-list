@@ -12,6 +12,14 @@
   margin-bottom: 8px;
 }
 
+/* Colores del selector */
+.selector {
+  --background: var(--ion-color-light);
+  --color: var(--ion-color-dark);
+  --border-radius: 8px;
+  --padding: 8px;
+}
+
 /* Estilo para las tareas completadas */
 .completed {
   text-decoration: line-through;
